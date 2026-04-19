@@ -122,8 +122,11 @@ function route(){
   if(bn) bn.classList.add('active');
   else   document.getElementById('bn-altro').classList.add('active');
 
-  // Re-center hive when returning home
-  if(sec === '' && window._hiveReset) window._hiveReset();
+  // Re-center hive and clear any hover states when returning home
+  if(sec === ''){
+    document.querySelectorAll('.hex-wrap.dimmed').forEach(w => w.classList.remove('dimmed'));
+    if(window._hiveReset) window._hiveReset();
+  }
 }
 
 window.addEventListener('hashchange', route);
@@ -331,6 +334,10 @@ function initDraggableHive(container, section, onDragState) {
     return { x: t.clientX, y: t.clientY };
   }
   function applyPos() {
+    const maxX = window.innerWidth;
+    const maxY = window.innerHeight;
+    curX = Math.max(-maxX, Math.min(maxX, curX));
+    curY = Math.max(-maxY, Math.min(maxY, curY));
     container.style.transform = `translate(${curX}px,${curY}px) scale(${scale})`;
   }
   function getTouchDist(e) {
