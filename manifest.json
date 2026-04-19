@@ -6,5 +6,12 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#060A14",
-  "theme_color": "#060A14"
+  "theme_color": "#060A14",
+  "icons": [
+    {
+      "src": "assets/favicon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
 }
