@@ -316,6 +316,14 @@ body {
 #hive-container{
   position:relative;
   margin:0 auto;
+  transform-origin:center center;
+}
+
+/* ══ STANDALONE / PWA FULLSCREEN ══ */
+@media(display-mode: standalone){
+  body { padding-top: env(safe-area-inset-top, 0px); }
+  .bar { padding-top: env(safe-area-inset-top, 0px); height: calc(56px + env(safe-area-inset-top, 0px)); }
+  .bnav { padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
 
 /* SVG connections */

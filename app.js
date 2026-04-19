@@ -136,7 +136,7 @@ window.addEventListener('DOMContentLoaded', () => {
   buildStars();
   loadGB();
   route();
-  makeQR('qr-board', C.board.url, 156);
+
   initSwipeBack();
   initSheetDrag();
   initScrollEffect();
@@ -320,15 +320,36 @@ function initDraggableHive(container, section, onDragState) {
   let prevX = 0, prevY = 0, prevT = 0;
   let rafId = 0;
 
+  // Pinch-to-zoom state
+  let scale = 1;
+  let pinching = false;
+  let initDist = 0;
+  let initScale = 1;
+
   function getPoint(e) {
     const t = e.touches ? e.touches[0] : e;
     return { x: t.clientX, y: t.clientY };
   }
   function applyPos() {
-    container.style.transform = `translate(${curX}px,${curY}px)`;
+    container.style.transform = `translate(${curX}px,${curY}px) scale(${scale})`;
+  }
+  function getTouchDist(e) {
+    const t = e.touches;
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   function onStart(e) {
+    // Pinch start (2+ fingers)
+    if (e.touches && e.touches.length >= 2) {
+      pinching = true;
+      active = false;
+      initDist = getTouchDist(e);
+      initScale = scale;
+      section.classList.add('is-dragging');
+      return;
+    }
     cancelAnimationFrame(rafId);
     const { x, y } = getPoint(e);
     active = true; moved = false;
@@ -341,6 +362,14 @@ function initDraggableHive(container, section, onDragState) {
   }
 
   function onMove(e) {
+    // Pinch move
+    if (pinching && e.touches && e.touches.length >= 2) {
+      e.preventDefault();
+      const dist = getTouchDist(e);
+      scale = Math.min(3, Math.max(0.5, initScale * (dist / initDist)));
+      applyPos();
+      return;
+    }
     if (!active) return;
     e.preventDefault();
     const { x, y } = getPoint(e);
@@ -358,10 +387,14 @@ function initDraggableHive(container, section, onDragState) {
   }
 
   function onEnd() {
+    if (pinching) {
+      pinching = false;
+      section.classList.remove('is-dragging');
+      return;
+    }
     if (!active) return;
     active = false;
     section.classList.remove('is-dragging');
-    // Reset drag flag after click event cycle
     setTimeout(() => onDragState(false), 50);
     function coast() {
       velX *= 0.91; velY *= 0.91;
@@ -376,10 +409,29 @@ function initDraggableHive(container, section, onDragState) {
   function resetPosition(){
     cancelAnimationFrame(rafId);
     container.style.transition = 'transform .5s cubic-bezier(0,.55,.45,1)';
-    curX = 0; curY = 0;
+    curX = 0; curY = 0; scale = 1;
     applyPos();
     setTimeout(() => { container.style.transition = ''; }, 520);
   }
+
+  // Double-tap to reset
+  let lastTap = 0;
+  section.addEventListener('touchend', (e) => {
+    if (e.touches && e.touches.length > 0) return;
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      resetPosition();
+    }
+    lastTap = now;
+  });
+
+  // Mouse wheel zoom
+  section.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 0.92 : 1.08;
+    scale = Math.min(3, Math.max(0.5, scale * factor));
+    applyPos();
+  }, { passive: false });
 
   section.addEventListener('mousedown', onStart);
   section.addEventListener('touchstart', onStart, { passive: true });
@@ -496,12 +548,14 @@ function injectConfig(){
 ════════════════════════════════════════ */
 function buildGames(){
   const g = document.getElementById('games-grid'); if(!g) return;
+  const frag = document.createDocumentFragment();
   C.games.forEach(gm => {
-    g.innerHTML += `<a class="gc" href="${gm.u}" target="_blank" rel="noopener">
-      <span class="gc-icon">${gm.i}</span>
-      <div class="gc-name">${gm.n}</div>
-      <div class="gc-sub">${gm.d}</div></a>`;
+    const a = document.createElement('a');
+    a.className = 'gc'; a.href = gm.u; a.target = '_blank'; a.rel = 'noopener';
+    a.innerHTML = `<span class="gc-icon">${gm.i}</span><div class="gc-name">${gm.n}</div><div class="gc-sub">${gm.d}</div>`;
+    frag.appendChild(a);
   });
+  g.appendChild(frag);
 }
 
 /* ════════════════════════════════════════
@@ -536,10 +590,11 @@ function buildStars(){
 function loadGB(){
   const msgs=JSON.parse(localStorage.getItem('Ittroiaio_gb')||'[]');
   const el=document.getElementById('gb-msgs'); if(!el||!msgs.length) return;
-  el.innerHTML=`<p style="font-family:var(--mono);font-size:.56rem;color:var(--mut2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">Messaggi salvati</p>`;
+  let html=`<p style="font-family:var(--mono);font-size:.56rem;color:var(--mut2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">Messaggi salvati</p>`;
   msgs.slice().reverse().forEach(m=>{
-    el.innerHTML+=`<div class="gb-item"><span class="gb-name">${esc(m.name)}</span><span class="gb-star">${'★'.repeat(m.s)}${'☆'.repeat(5-m.s)}</span><div class="gb-text">${esc(m.msg)}</div><div class="gb-date">${m.date}</div></div>`;
+    html+=`<div class="gb-item"><span class="gb-name">${esc(m.name)}</span><span class="gb-star">${'★'.repeat(m.s)}${'☆'.repeat(5-m.s)}</span><div class="gb-text">${esc(m.msg)}</div><div class="gb-date">${m.date}</div></div>`;
   });
+  el.innerHTML=html;
 }
 function submitGB(){
   const name=document.getElementById('gb-name').value.trim();

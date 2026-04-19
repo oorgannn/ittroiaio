@@ -1,0 +1,10 @@
+{
+  "name": "Ittroiaio",
+  "short_name": "Ittroiaio",
+  "description": "Il portale de Ittroiaio",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060A14",
+  "theme_color": "#060A14"
+}
